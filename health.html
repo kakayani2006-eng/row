@@ -570,15 +570,15 @@ main {
   const TEMPLATE_VERSION = 5;
 
   const STACK_DEFAULTS = [
-    { id: 'm1', name: 'XXXXX - Supplement of choice', dose: '', window: 'morning', note: 'how much MG, meal times, any data below', tag: null,    ordered: true  },
-    { id: 'm2', name: 'XXXXX - Supplement of choice', dose: '', window: 'morning', note: 'how much MG, meal times, any data below', tag: 'stack', ordered: true  },
-    { id: 'm3', name: 'XXXXX - Supplement of choice', dose: '', window: 'morning', note: 'how much MG, meal times, any data below', tag: null,    ordered: true  },
-    { id: 'l1', name: 'XXXXX - Supplement of choice', dose: '', window: 'lunch',   note: 'how much MG, meal times, any data below', tag: null,    ordered: true  },
-    { id: 'l2', name: 'XXXXX - Supplement of choice', dose: '', window: 'lunch',   note: 'how much MG, meal times, any data below', tag: null,    ordered: true  },
-    { id: 'e1', name: 'XXXXX - Supplement of choice', dose: '', window: 'evening', note: 'how much MG, meal times, any data below', tag: null,    ordered: true  },
-    { id: 'e2', name: 'XXXXX - Supplement of choice', dose: '', window: 'evening', note: 'how much MG, meal times, any data below', tag: 'not-ordered', ordered: false },
-    { id: 'e3', name: 'XXXXX - Supplement of choice', dose: '', window: 'evening', note: 'how much MG, meal times, any data below', tag: null,    ordered: true  },
+    { id: 'vitc', name: 'Vitamin C',     dose: '', window: 'morning', note: '', tag: null, ordered: true },
+    { id: 'vitd', name: 'Vitamin D',     dose: '', window: 'evening', note: '', tag: null, ordered: true },
+    { id: 'clo',  name: 'Cod liver oil', dose: '', window: 'evening', note: '', tag: null, ordered: true },
+    { id: 'hgh',  name: 'HGH',           dose: '', window: 'evening', note: '', tag: null, ordered: true },
   ];
+  // One-off update for stacks saved before the list above existed: drops
+  // the "XXXXX" placeholder rows and adds any of these that are missing.
+  // Bump STACK_SEED to push a new set the same way.
+  const STACK_SEED = 'stack-2026-11-22';
 
   const STACK_WINDOWS = [
     { key: 'morning', title: 'Morning', time: '7–10 AM', cutoffHour: 10 },
@@ -674,7 +674,18 @@ main {
       const fresh = JSON.parse(JSON.stringify(STACK_DEFAULTS));
       storeSet('stack:items', fresh);
       storeSet('stack:version', TEMPLATE_VERSION);
+      storeSet('stack:seed', STACK_SEED);
       return fresh;
+    }
+    if (!window.DASH_SANDBOX && storeGet('stack:seed') !== STACK_SEED) {
+      const items = stored.filter(i => !/^XXXXX/.test(i.name || ''));
+      const have = items.map(i => String(i.name || '').toLowerCase());
+      STACK_DEFAULTS.forEach(d => {
+        if (have.indexOf(d.name.toLowerCase()) === -1) items.push(JSON.parse(JSON.stringify(d)));
+      });
+      storeSet('stack:items', items);
+      storeSet('stack:seed', STACK_SEED);
+      return items;
     }
     return stored;
   }
@@ -1060,6 +1071,9 @@ main {
     render();
   }, 60 * 1000);
 
+  // Re-render when cloud sync applies remote data.
+  window.addEventListener('storage', render);
+
   render();
   startTicker();
 })();
@@ -1091,7 +1105,24 @@ main {
     return `wstack:taken:${y}-${m}-${day}`;
   }
 
-  function getItems() { const v = storeGet('wstack:items'); return Array.isArray(v) ? v : []; }
+  // Starter weekly items, added once (see WSTACK_SEED). Day: Mon = 0.
+  const WSTACK_SEED = 'wstack-2026-11-22';
+  const WSTACK_DEFAULTS = [
+    { id: 'wk_test_tue', name: 'Test', dose: '120mg · morning', day: 1 },
+    { id: 'wk_test_fri', name: 'Test', dose: '120mg · morning', day: 4 },
+  ];
+  function getItems() {
+    const v = storeGet('wstack:items');
+    const items = Array.isArray(v) ? v : [];
+    if (!window.DASH_SANDBOX && storeGet('wstack:seed') !== WSTACK_SEED) {
+      WSTACK_DEFAULTS.forEach(d => {
+        if (!items.some(i => i.id === d.id)) items.push(Object.assign({}, d));
+      });
+      storeSet('wstack:items', items);
+      storeSet('wstack:seed', WSTACK_SEED);
+    }
+    return items;
+  }
   function setItems(v) { storeSet('wstack:items', v); }
   function getTaken() { const v = storeGet(weekKey()); return v && typeof v === 'object' ? v : {}; }
   function setTaken(v) { storeSet(weekKey(), v); }
@@ -1200,7 +1231,7 @@ document.addEventListener('DOMContentLoaded', function () {
   if (typeof initCloudSync !== 'function') return;
   initCloudSync({
     appKey: 'health',
-    syncedKeys: ['stack:items', 'stack:version', 'stack:low', 'wstack:items'],
+    syncedKeys: ['stack:items', 'stack:version', 'stack:low', 'stack:seed', 'wstack:items', 'wstack:seed'],
     syncedPrefixes: ['stack:taken:', 'wstack:taken:'],
     onApplied: function () { window.dispatchEvent(new Event('storage')); }
   });
