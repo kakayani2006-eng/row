@@ -25,13 +25,13 @@
   width: 44px; height: 42px;
   border: 1px solid rgba(255, 255, 255, 0.10);
   background: rgba(255, 255, 255, 0.04);
-  border-radius: 12px; text-decoration: none;
+  border-radius: 12px; text-decoration: none; color: #FAFAFA;
   -webkit-tap-highlight-color: transparent;
   transition: background 0.15s;
 }
 .topbar-finance-btn:hover { background: rgba(255, 255, 255, 0.08); }
 .topbar-finance-icon {
-  font-size: 20px; line-height: 1;
+  display: inline-flex; font-size: 20px; line-height: 1;
   filter: grayscale(100%) brightness(1.4); opacity: 0.85;
 }
 .bottombar {
@@ -51,7 +51,7 @@
   -webkit-tap-highlight-color: transparent; transition: color 0.15s;
 }
 .bottombar-tab-icon {
-  font-size: 24px; line-height: 1;
+  display: inline-flex; font-size: 24px; line-height: 1;
   filter: grayscale(100%) brightness(1.2); opacity: 0.55;
   transition: opacity 0.15s, filter 0.15s, transform 0.10s;
 }
@@ -100,20 +100,20 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
   const topbarHtml = `
 <header class="topbar" id="topbar" role="navigation" aria-label="Quick actions">
   <a href="finance.html" class="topbar-finance-btn" id="topbarFinance" aria-label="Finance">
-    <span class="topbar-finance-icon">📊</span>
+    <span class="topbar-finance-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg></span>
   </a>
 </header>`;
 
   const bottombarHtml = `
 <nav class="bottombar" id="bottombar" role="navigation" aria-label="Main tabs">
   <a href="index.html" class="bottombar-tab" data-page="main">
-    <span class="bottombar-tab-icon">🏠</span><span>Main</span>
+    <span class="bottombar-tab-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg></span><span>Main</span>
   </a>
   <a href="health.html" class="bottombar-tab" data-page="health">
-    <span class="bottombar-tab-icon">💊</span><span>Health</span>
+    <span class="bottombar-tab-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="8" width="20" height="8" rx="4" transform="rotate(-45 12 12)"/><path d="M8.5 8.5l7 7"/></svg></span><span>Health</span>
   </a>
   <a href="gym.html" class="bottombar-tab" data-page="fitness">
-    <span class="bottombar-tab-icon">💪</span><span>Fitness</span>
+    <span class="bottombar-tab-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 7v10M3 9v6M18 7v10M21 9v6M6 12h12"/></svg></span><span>Fitness</span>
   </a>
 </nav>`;
 

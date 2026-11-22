@@ -145,7 +145,7 @@ body::after {
   background: rgba(255,255,255,0.06);
   border-color: rgba(255,255,255,0.10);
 }
-.bot-tab-icon { font-size: 18px; line-height: 1; }
+.bot-tab-icon { display: inline-flex; font-size: 18px; line-height: 1; }
 .bot-tab-label {
   font-size: 10px; font-weight: 700;
   letter-spacing: 0.10em;
@@ -181,7 +181,7 @@ html, body { scrollbar-width: none; -ms-overflow-style: none; }
 }
 .section-title-text { display: inline-flex; align-items: center; gap: 8px; }
 .section-title-text::before {
-  content: '⚡';
+  content: '≡';
   font-size: 14px;
   color: var(--text-tertiary);
   opacity: 0.5;
@@ -1406,8 +1406,7 @@ html, body { scrollbar-width: none; -ms-overflow-style: none; }
 }
 
 /* ============================================================
-   DATE FIELDS — wrap each date input in a label that shows a
-   📅 emoji prefix so it's obvious what the field is. The native
+   DATE FIELDS — wrap each date input in a label. The native
    picker icon gets a dark-mode filter so it shows up on the
    dark background instead of vanishing into it.
    ============================================================ */
@@ -1686,7 +1685,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     <div class="card-grid" style="gap:10px">
       <!-- Bank accounts -->
       <div class="card nw-subcard">
-        <div class="label" style="display:flex;justify-content:space-between;align-items:center"><span>🏦 Bank accounts</span><span id="bankTotal" style="font-size:13px;color:var(--text-primary);font-weight:600">0</span></div>
+        <div class="label" style="display:flex;justify-content:space-between;align-items:center"><span>Bank accounts</span><span id="bankTotal" style="font-size:13px;color:var(--text-primary);font-weight:600">0</span></div>
         <div id="bankList" class="nw-list"></div>
         <div class="quick-add">
           <input type="text" placeholder="Account name" id="bankName" />
@@ -1696,7 +1695,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
       </div>
       <!-- Stocks / Investments -->
       <div class="card nw-subcard">
-        <div class="label" style="display:flex;justify-content:space-between;align-items:center"><span>📈 Stocks / Investments</span><span id="stocksTotal" style="font-size:13px;color:var(--text-primary);font-weight:600">0</span></div>
+        <div class="label" style="display:flex;justify-content:space-between;align-items:center"><span>Stocks / Investments</span><span id="stocksTotal" style="font-size:13px;color:var(--text-primary);font-weight:600">0</span></div>
         <div id="stocksList" class="nw-list"></div>
         <div class="quick-add">
           <input type="text" placeholder="Stock / fund" id="stocksName" />
@@ -1706,7 +1705,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
       </div>
       <!-- Crypto -->
       <div class="card nw-subcard">
-        <div class="label" style="display:flex;justify-content:space-between;align-items:center"><span>🪙 Crypto</span><span id="cryptoTotal" style="font-size:13px;color:var(--text-primary);font-weight:600">0</span></div>
+        <div class="label" style="display:flex;justify-content:space-between;align-items:center"><span>Crypto</span><span id="cryptoTotal" style="font-size:13px;color:var(--text-primary);font-weight:600">0</span></div>
         <div id="cryptoList" class="nw-list"></div>
         <div class="quick-add">
           <input type="text" placeholder="Coin / wallet" id="cryptoName" />
@@ -1716,7 +1715,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
       </div>
       <!-- Other assets -->
       <div class="card nw-subcard">
-        <div class="label" style="display:flex;justify-content:space-between;align-items:center"><span>💼 Other assets</span><span id="otherTotal" style="font-size:13px;color:var(--text-primary);font-weight:600">0</span></div>
+        <div class="label" style="display:flex;justify-content:space-between;align-items:center"><span>Other assets</span><span id="otherTotal" style="font-size:13px;color:var(--text-primary);font-weight:600">0</span></div>
         <div id="otherList" class="nw-list"></div>
         <div class="quick-add">
           <input type="text" placeholder="Asset name" id="otherName" />
@@ -1758,7 +1757,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         <option value="yearly">Yearly</option>
         <option value="weekly">Weekly</option>
       </select>
-      <label class="date-field" title="Next renewal date" style="min-width:150px"><span class="date-emoji" aria-hidden="true">📅</span><input type="date" id="subRenewal" /></label>
+      <label class="date-field" title="Next renewal date" style="min-width:150px"><input type="date" id="subRenewal" /></label>
       <select id="subFromCat" title="Which net worth account to deduct from" style="padding:6px 10px;border:0.5px solid var(--border);border-radius:var(--radius-md);font-size:12px;font-family:inherit;background:var(--bg-card);color:var(--text-primary);min-width:130px">
         <option value="">No accounts yet</option>
       </select>
@@ -1793,7 +1792,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
       <select id="ordFromCat" class="ord-input ord-input-from" title="Which net worth account this comes out of">
         <option value="">No accounts yet</option>
       </select>
-      <label class="date-field ord-input-date" title="Expected arrival"><span class="date-emoji" aria-hidden="true">📅</span><input type="date" id="ordArrival" /></label>
+      <label class="date-field ord-input-date" title="Expected arrival"><input type="date" id="ordArrival" /></label>
       <button class="ord-add-btn" id="ordAddBtn" onclick="window.__addOrder && window.__addOrder()">+ Add Order</button>
     </div>
     <div class="ord-add-preview" id="ordAddPreview">Type a cost — preview will show what % of net worth it takes.</div>
@@ -1806,7 +1805,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   </div>
   <div id="ordList"></div>
   <div class="ord-empty-card" id="ordEmpty">
-    <div class="ord-empty-icon">📦</div>
     <div class="ord-empty-title">Nothing on the way</div>
     <div class="ord-empty-sub">Log an order above. Pick the account it comes out of, the expected arrival date, and the dashboard will show what % of your net worth it costs.</div>
   </div>
@@ -1858,7 +1856,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   </div>
   <div id="wishList"></div>
   <div class="wish-empty-card" id="wishEmpty">
-    <div class="wish-empty-icon">🎯</div>
     <div class="wish-empty-title">No wishes yet</div>
     <div class="wish-empty-sub">Add anything you're saving for — the dashboard will calculate what % of your net worth it'd cost.</div>
   </div>
@@ -1869,19 +1866,19 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 <!-- ===== BOTTOM TAB BAR ===== -->
 <nav class="bottom-tabs" id="bottomTabs" aria-label="Sections">
   <button class="bot-tab active" data-tab="net">
-    <span class="bot-tab-icon">📊</span>
+    <span class="bot-tab-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg></span>
     <span class="bot-tab-label">Net Worth</span>
   </button>
   <button class="bot-tab" data-tab="subs">
-    <span class="bot-tab-icon">🔁</span>
+    <span class="bot-tab-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3"/></svg></span>
     <span class="bot-tab-label">Subs</span>
   </button>
   <button class="bot-tab" data-tab="incoming">
-    <span class="bot-tab-icon">📦</span>
+    <span class="bot-tab-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8zM3 8l9 5 9-5M12 13v8"/></svg></span>
     <span class="bot-tab-label">Orders</span>
   </button>
   <button class="bot-tab" data-tab="wish">
-    <span class="bot-tab-icon">🎯</span>
+    <span class="bot-tab-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg></span>
     <span class="bot-tab-label">Wishlist</span>
   </button>
 </nav>
@@ -2533,7 +2530,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
       const editBtn = document.createElement('button');
       editBtn.title = 'Edit';
       editBtn.style.cssText = 'background:transparent;border:1px solid rgba(255,255,255,0.10);color:var(--text-tertiary);cursor:pointer;font-size:12px;padding:3px 7px;border-radius:5px;font-family:inherit;line-height:1';
-      editBtn.textContent = '✏';
+      editBtn.innerHTML = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/></svg>';
       editBtn.addEventListener('click', () => editSubInline(idx));
       const del = document.createElement('button');
       del.title = 'Delete';
@@ -2556,7 +2553,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         const arr = storeGet('subs') || [];
         if (!arr[i]) return;
         if (!arr[i].autoDeduct && (!arr[i].fromCat || !arr[i].fromAccount)) {
-          alert('Pick a "From account" first (use the ✏ edit button) so the deduction knows where to take the money from.');
+          alert('Pick a "From account" first (use the edit button) so the deduction knows where to take the money from.');
           return;
         }
         arr[i].autoDeduct = !arr[i].autoDeduct;
@@ -2580,7 +2577,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     if (!sel) return;
     const prev = sel.value;
     const accounts = (typeof listAllNwAccounts === 'function') ? listAllNwAccounts() : [];
-    const ICONS = { bank: '🏦', stocks: '📈', crypto: '🪙', other: '💼' };
     if (!accounts.length) {
       sel.innerHTML = '<option value="">No accounts yet</option>';
       sel.disabled = true;
@@ -2589,7 +2585,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     sel.disabled = false;
     sel.innerHTML = accounts.map(a => {
       const value = a.catKey + '::' + a.itemName;
-      return '<option value="' + value + '">' + ICONS[a.catKey] + ' ' + escapeHtml(a.itemName) + '</option>';
+      return '<option value="' + value + '">' + escapeHtml(a.itemName) + '</option>';
     }).join('');
     if (prev && [...sel.options].some(o => o.value === prev)) sel.value = prev;
   }
@@ -2658,11 +2654,10 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     ).join('');
     // Build From-account options from the live NW accounts
     const accounts = (typeof listAllNwAccounts === 'function') ? listAllNwAccounts() : [];
-    const ICONS = { bank: '🏦', stocks: '📈', crypto: '🪙', other: '💼' };
     const currentFrom = (it.fromCat && it.fromAccount) ? (it.fromCat + '::' + it.fromAccount) : '';
     const fromOpts = '<option value="">No account linked</option>' + accounts.map(a => {
       const v = a.catKey + '::' + a.itemName;
-      return '<option value="' + v + '"' + (v === currentFrom ? ' selected' : '') + '>' + ICONS[a.catKey] + ' ' + escapeHtml(a.itemName) + '</option>';
+      return '<option value="' + v + '"' + (v === currentFrom ? ' selected' : '') + '>' + escapeHtml(a.itemName) + '</option>';
     }).join('');
     row.innerHTML = '';
     row.style.gridTemplateColumns = '1fr';
@@ -2674,7 +2669,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
       '<input type="number" step="0.01" class="se-amt" value="' + Number(enteredAmt).toFixed(2) + '" style="width:90px;padding:6px 10px;border:0.5px solid rgba(255,255,255,0.10);border-radius:var(--radius-md);font-size:12px;font-family:inherit;background:var(--bg-card);color:var(--text-primary)" />' +
       '<select class="se-ccy" style="padding:6px 10px;border:0.5px solid rgba(255,255,255,0.10);border-radius:var(--radius-md);font-size:12px;font-family:inherit;background:var(--bg-card);color:var(--text-primary)">' + ccyOpts + '</select>' +
       '<select class="se-per" style="padding:6px 10px;border:0.5px solid rgba(255,255,255,0.10);border-radius:var(--radius-md);font-size:12px;font-family:inherit;background:var(--bg-card);color:var(--text-primary)">' + periodOpts + '</select>' +
-      '<label class="date-field" style="min-width:140px"><span class="date-emoji" aria-hidden="true">📅</span><input type="date" class="se-ren" value="' + (it.renewal && /^\d{4}-\d{2}-\d{2}/.test(it.renewal) ? it.renewal.slice(0,10) : '') + '" /></label>' +
+      '<label class="date-field" style="min-width:140px"><input type="date" class="se-ren" value="' + (it.renewal && /^\d{4}-\d{2}-\d{2}/.test(it.renewal) ? it.renewal.slice(0,10) : '') + '" /></label>' +
       '<select class="se-from" style="padding:6px 10px;border:0.5px solid rgba(255,255,255,0.10);border-radius:var(--radius-md);font-size:12px;font-family:inherit;background:var(--bg-card);color:var(--text-primary);min-width:130px">' + fromOpts + '</select>' +
       '<label class="sub-auto-toggle" style="padding:6px 10px"><input type="checkbox" class="se-auto"' + (it.autoDeduct ? ' checked' : '') + ' /><span class="sub-auto-track"><span class="sub-auto-thumb"></span></span><span class="sub-auto-label">Auto-deduct</span></label>' +
       '<button class="se-save quick-add-btn">Save</button>' +
@@ -2963,7 +2958,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     if (!sel) return;
     const accounts = listAllNwAccounts();
     const prev = sel.value;
-    const ICONS = { bank: '🏦', stocks: '📈', crypto: '🪙', other: '💼' };
     if (!accounts.length) {
       sel.innerHTML = '<option value="">No accounts yet</option>';
       sel.disabled = true;
@@ -2972,7 +2966,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     sel.disabled = false;
     sel.innerHTML = accounts.map(a => {
       const value = a.catKey + '::' + a.itemName;
-      return '<option value="' + value + '">' + ICONS[a.catKey] + ' ' + escapeHtml(a.itemName) + '</option>';
+      return '<option value="' + value + '">' + escapeHtml(a.itemName) + '</option>';
     }).join('');
     if (prev && [...sel.options].some(o => o.value === prev)) sel.value = prev;
   }
@@ -3081,7 +3075,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
       alert('Add at least one net worth account before deducting.');
       return;
     }
-    const ICONS = { bank: '🏦', stocks: '📈', crypto: '🪙', other: '💼' };
     const cost = Number(order.amount) || 0;
     const optsHtml = accounts.map(a => {
       const insufficient = a.amountCHF < cost - 0.005;
@@ -3091,7 +3084,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         + 'data-name="' + escapeHtml(a.itemName) + '" '
         + (insufficient ? 'data-insuf="1" ' : '')
         + '>'
-        + ICONS[a.catKey] + ' ' + escapeHtml(a.itemName)
+        + escapeHtml(a.itemName)
         + '<small>' + fmtMoney(a.amountCHF) + (insufficient ? ' · not enough' : ' available') + '</small>'
         + '</button>';
     }).join('');
