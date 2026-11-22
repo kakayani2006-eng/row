@@ -428,6 +428,18 @@ main {
   margin-top: 2px;
 }
 
+.weekly-title { margin-top: 48px; }
+.stack-window.is-today .stack-window-title::after {
+  content: 'today';
+  margin-left: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px; font-weight: 600; letter-spacing: 0.04em;
+  padding: 2px 7px; border-radius: 99px;
+  background: rgba(29, 158, 117, 0.15); color: var(--accent);
+}
+.wstack-item { grid-template-columns: 32px 1fr auto; }
+.stack-add-row > * { min-width: 0; }
+
 .attribution {
   text-align: center; margin-top: 28px;
   font-family: var(--font-mono);
@@ -496,6 +508,41 @@ main {
           <option value="anytime">Anytime</option>
         </select>
         <button id="stackAddBtn" class="stack-add-btn">+ Add</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title weekly-title">Weekly Stack</div>
+
+  <div class="stack-card">
+    <div class="stack-head">
+      <div class="sf-eyebrow">Weekly stack</div>
+      <div class="sf-title">Once-a-week items</div>
+      <div class="stack-progress-text" id="wstackProgressText">— / — taken this week · resets Monday 6 AM</div>
+    </div>
+
+    <div class="stack-progress-track">
+      <div id="wstackProgressBar" class="stack-progress-fill"></div>
+    </div>
+
+    <div id="wstackGroups"></div>
+
+    <div class="stack-add-wrap">
+      <div class="sf-eyebrow stack-add-label">Add to weekly stack</div>
+      <div class="stack-add-row">
+        <input id="wstackAddName" type="text" placeholder="Name (e.g. Vitamin D 20,000 IU)" class="stack-input" autocomplete="off" spellcheck="false" />
+        <input id="wstackAddDose" type="text" placeholder="Dose (e.g. 1 cap)" class="stack-input" />
+        <select id="wstackAddDay" class="stack-input stack-select">
+          <option value="any">Any day</option>
+          <option value="0">Monday</option>
+          <option value="1">Tuesday</option>
+          <option value="2">Wednesday</option>
+          <option value="3">Thursday</option>
+          <option value="4">Friday</option>
+          <option value="5">Saturday</option>
+          <option value="6">Sunday</option>
+        </select>
+        <button id="wstackAddBtn" class="stack-add-btn">+ Add</button>
       </div>
     </div>
   </div>
@@ -1020,12 +1067,143 @@ main {
 </script>
 
 <script>
+// ====== WEEKLY STACK — once-a-week items, ticks reset Monday 6 AM ======
+(() => {
+  'use strict';
+
+  const storeGet = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
+  const storeSet = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+  const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+  // Same 6 AM day boundary as the daily stack.
+  function activeDate() {
+    const now = new Date();
+    if (now.getHours() < 6) now.setDate(now.getDate() - 1);
+    now.setHours(12, 0, 0, 0);
+    return now;
+  }
+  function todayIndex() { return (activeDate().getDay() + 6) % 7; } // Mon = 0
+  function weekKey() {
+    const d = activeDate();
+    d.setDate(d.getDate() - todayIndex());
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `wstack:taken:${y}-${m}-${day}`;
+  }
+
+  function getItems() { const v = storeGet('wstack:items'); return Array.isArray(v) ? v : []; }
+  function setItems(v) { storeSet('wstack:items', v); }
+  function getTaken() { const v = storeGet(weekKey()); return v && typeof v === 'object' ? v : {}; }
+  function setTaken(v) { storeSet(weekKey(), v); }
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function render() {
+    const items = getItems();
+    const taken = getTaken();
+    const today = todayIndex();
+    const total = items.length;
+    const done = items.filter(i => taken[i.id]).length;
+    document.getElementById('wstackProgressText').textContent =
+      `${done} / ${total} taken this week · resets Monday 6 AM`;
+    document.getElementById('wstackProgressBar').style.width =
+      (total === 0 ? 0 : (done / total) * 100) + '%';
+
+    const groupsEl = document.getElementById('wstackGroups');
+    groupsEl.innerHTML = '';
+
+    const groups = DAYS.map((title, idx) => ({ key: idx, title, icon: '📅' }));
+    groups.push({ key: 'any', title: 'Any day', icon: '⏱️' });
+
+    groups.forEach(g => {
+      const gItems = items.filter(i => (i.day === 'any' ? 'any' : Number(i.day)) === g.key);
+      if (gItems.length === 0) return;
+      const group = document.createElement('div');
+      group.className = 'stack-window' + (g.key === today ? ' is-today' : '');
+      group.innerHTML = `
+        <div class="stack-window-header">
+          <span class="stack-window-icon">${g.icon}</span>
+          <span class="stack-window-title">${g.title}</span>
+        </div>`;
+      gItems.forEach(item => {
+        const isTaken = !!taken[item.id];
+        const isMissed = !isTaken && g.key !== 'any' && g.key < today;
+        const row = document.createElement('div');
+        row.className = 'stack-item wstack-item' + (isTaken ? ' taken' : '') + (isMissed ? ' missed' : '');
+        row.innerHTML = `
+          <button class="stack-check ${isTaken ? 'checked' : ''}" data-action="toggle" data-id="${item.id}" aria-label="Mark taken">${isTaken ? '✓' : ''}</button>
+          <div class="stack-item-body">
+            <div class="stack-item-name">${escapeHtml(item.name)}</div>
+            ${item.dose ? `<div class="stack-item-meta">${escapeHtml(item.dose)}</div>` : ''}
+          </div>
+          <button class="stack-item-del" data-action="del" data-id="${item.id}" aria-label="Delete">×</button>`;
+        group.appendChild(row);
+      });
+      groupsEl.appendChild(group);
+    });
+
+    if (groupsEl.children.length === 0) {
+      groupsEl.innerHTML = `<div class="stack-window-empty">No weekly items yet — add one below.</div>`;
+    }
+  }
+
+  document.getElementById('wstackGroups').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    const id = btn.dataset.id;
+    if (btn.dataset.action === 'toggle') {
+      const taken = getTaken();
+      if (taken[id]) delete taken[id]; else taken[id] = Date.now();
+      setTaken(taken);
+    } else if (btn.dataset.action === 'del') {
+      setItems(getItems().filter(i => i.id !== id));
+      const taken = getTaken();
+      if (taken[id]) { delete taken[id]; setTaken(taken); }
+    }
+    render();
+  });
+
+  const nameInput = document.getElementById('wstackAddName');
+  const doseInput = document.getElementById('wstackAddDose');
+  const daySelect = document.getElementById('wstackAddDay');
+  const addBtn = document.getElementById('wstackAddBtn');
+
+  addBtn.addEventListener('click', () => {
+    const name = nameInput.value.trim();
+    if (!name) { nameInput.focus(); return; }
+    const items = getItems();
+    items.push({
+      id: 'w_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+      name,
+      dose: doseInput.value.trim(),
+      day: daySelect.value === 'any' ? 'any' : Number(daySelect.value)
+    });
+    setItems(items);
+    nameInput.value = ''; doseInput.value = '';
+    render();
+    nameInput.focus();
+  });
+  [nameInput, doseInput].forEach(i => {
+    i.addEventListener('keydown', (e) => { if (e.key === 'Enter') addBtn.click(); });
+  });
+
+  // Re-render when cloud sync applies remote data, and each minute for day/week rollover.
+  window.addEventListener('storage', render);
+  setInterval(render, 60 * 1000);
+  render();
+})();
+</script>
+
+<script>
 document.addEventListener('DOMContentLoaded', function () {
   if (typeof initCloudSync !== 'function') return;
   initCloudSync({
     appKey: 'health',
-    syncedKeys: ['stack:items', 'stack:version', 'stack:low'],
-    syncedPrefixes: ['stack:taken:'],
+    syncedKeys: ['stack:items', 'stack:version', 'stack:low', 'wstack:items'],
+    syncedPrefixes: ['stack:taken:', 'wstack:taken:'],
     onApplied: function () { window.dispatchEvent(new Event('storage')); }
   });
 });
