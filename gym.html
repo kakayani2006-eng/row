@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0a0a0b">
 <title>Progressive Overload Coach</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="KK Ops">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <script src="sandbox.js"></script>
 <script src="topbar.js" defer></script>
 
@@ -3556,11 +3562,16 @@ img, video, canvas, svg { max-width: 100%; }
     }
   }
 
+  // Offline edits: same dirty / seen flags as sync.js (see there).
+  const PC_DIRTY = 'sync:dirty:' + APP_KEY, PC_SEEN = 'sync:seen:' + APP_KEY;
+  function pcFlag(k, on) { try { if (on) _pcOrigSet(k, '1'); else _pcOrigRemove(k); } catch (e) {} }
+  function pcHas(k) { try { return localStorage.getItem(k) === '1'; } catch (e) { return false; } }
+
   async function pcPushNow() {
     if (!pcSupa) return;
     const state = pcCollectState();
     const json = JSON.stringify(state);
-    if (json === pcLastSyncedJson) return;
+    if (json === pcLastSyncedJson) { pcFlag(PC_DIRTY, false); return; }
     try {
       const { error } = await pcSupa
         .from('app_state')
@@ -3568,12 +3579,13 @@ img, video, canvas, svg { max-width: 100%; }
           { key: APP_KEY, data: state, updated_at: new Date().toISOString() },
           { onConflict: 'key' }
         );
-      if (!error) pcLastSyncedJson = json;
+      if (!error) { pcLastSyncedJson = json; pcFlag(PC_DIRTY, false); pcFlag(PC_SEEN, true); }
     } catch (_) {}
   }
 
   function pcSchedulePush() {
     if (pcSuppressSync) return;
+    pcFlag(PC_DIRTY, true);
     clearTimeout(pcPushTimer);
     pcPushTimer = setTimeout(pcPushNow, 250);
   }
@@ -3612,8 +3624,13 @@ img, video, canvas, svg { max-width: 100%; }
       const { data, error } = await pcSupa
         .from('app_state').select('data').eq('key', APP_KEY).maybeSingle();
       if (!error && data && data.data && Object.keys(data.data).length > 0) {
-        pcLastSyncedJson = JSON.stringify(data.data);
-        pcMaybeApplyRemote(data.data);
+        if (pcHas(PC_DIRTY) && pcHas(PC_SEEN)) {
+          await pcPushNow(); // unsynced changes made offline win
+        } else {
+          pcFlag(PC_SEEN, true);
+          pcLastSyncedJson = JSON.stringify(data.data);
+          pcMaybeApplyRemote(data.data);
+        }
       } else if (Object.keys(pcCollectState()).length > 0) {
         pcSchedulePush();
       }
@@ -3637,6 +3654,7 @@ img, video, canvas, svg { max-width: 100%; }
   document.addEventListener('focusout', () => {
     setTimeout(pcApplyPendingIfReady, 0);
   }, true);
+  window.addEventListener('online', () => { if (pcHas(PC_DIRTY)) pcPushNow(); });
   window.addEventListener('pagehide', pcFlushPushOnUnload);
   window.addEventListener('beforeunload', pcFlushPushOnUnload);
   document.addEventListener('visibilitychange', () => {

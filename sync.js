@@ -54,6 +54,14 @@
       origRemove(k);
       try { if (!suppressSync && matches(k)) schedulePush(); } catch (e) {}
     };
+    // Offline edits: `dirty` is set whenever a change is waiting to be
+    // pushed and cleared once Supabase has it. On the next load a dirty
+    // device pushes first instead of being overwritten by the older
+    // remote copy. `seen` means this device has synced at least once, so
+    // a brand-new install can never push an empty state over real data.
+    const DIRTY = 'sync:dirty:' + appKey, SEEN = 'sync:seen:' + appKey;
+    function flag(k, on) { try { if (on) origSet(k, '1'); else origRemove(k); } catch (e) {} }
+    function has(k) { try { return localStorage.getItem(k) === '1'; } catch (e) { return false; } }
     function applyRemote(remote) {
       if (!remote || typeof remote !== 'object') return false;
       suppressSync = true;
@@ -76,16 +84,16 @@
       if (!supa) return;
       const state = collect();
       const json = JSON.stringify(state);
-      if (json === lastSyncedJson) return;
+      if (json === lastSyncedJson) { flag(DIRTY, false); return; }
       try {
         const { error } = await supa.from('app_state').upsert(
           { key: appKey, data: state, updated_at: new Date().toISOString() },
           { onConflict: 'key' }
         );
-        if (!error) lastSyncedJson = json;
+        if (!error) { lastSyncedJson = json; flag(DIRTY, false); flag(SEEN, true); }
       } catch (e) {}
     }
-    function schedulePush() { clearTimeout(pushTimer); pushTimer = setTimeout(pushNow, 250); }
+    function schedulePush() { flag(DIRTY, true); clearTimeout(pushTimer); pushTimer = setTimeout(pushNow, 250); }
     function flushOnUnload() {
       const state = collect();
       const json = JSON.stringify(state);
@@ -110,8 +118,13 @@
       try {
         const { data, error } = await supa.from('app_state').select('data').eq('key', appKey).maybeSingle();
         if (!error && data && data.data && Object.keys(data.data).length > 0) {
-          lastSyncedJson = JSON.stringify(data.data);
-          applyRemote(data.data);
+          if (has(DIRTY) && has(SEEN)) {
+            await pushNow(); // unsynced changes made offline win
+          } else {
+            flag(SEEN, true);
+            lastSyncedJson = JSON.stringify(data.data);
+            applyRemote(data.data);
+          }
         } else if (Object.keys(collect()).length > 0) {
           schedulePush();
         }
@@ -128,6 +141,7 @@
         })
         .subscribe();
     })();
+    window.addEventListener('online', () => { if (has(DIRTY)) pushNow(); });
     window.addEventListener('beforeunload', flushOnUnload);
     window.addEventListener('pagehide', flushOnUnload);
     window.addEventListener('storage', (e) => { if (e.key && matches(e.key)) schedulePush(); });

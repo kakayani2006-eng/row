@@ -21,8 +21,9 @@ Open any `.html` file directly in your browser — no build step, no install.
 | [uni.html](uni.html) | Uni — this week, deadlines, and a revision tracker by module and lecture |
 | [topbar.js](topbar.js) | Shared top bar — auto-injected into pages that `<script src="topbar.js">` |
 | [sandbox.js](sandbox.js) | Sandbox mode — add `?sandbox` to any page URL for a copy with sample data and cloud sync off |
+| [sw.js](sw.js), [manifest.webmanifest](manifest.webmanifest) | Make it installable (Add to Home Screen) and usable offline |
 
-Each app stores its own state in browser `localStorage`. No accounts, no server.
+Each app stores its own state in browser `localStorage` and syncs it to Supabase. Changes made offline are pushed the next time the page loads with a connection.
 
 ## Building from scratch
 

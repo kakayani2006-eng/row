@@ -185,7 +185,15 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
     sync();
   }
 
+  // Offline support: see sw.js. Skipped inside iframes and on file:// pages.
+  function registerServiceWorker() {
+    if (isEmbedded() || !('serviceWorker' in navigator)) return;
+    if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') return;
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+
   function boot() {
+    registerServiceWorker();
     injectStyleAndHTML();
     lockGestures();
     startModalLock();
