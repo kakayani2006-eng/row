@@ -26,3 +26,31 @@ Each app stores its own state in browser `localStorage`. No accounts, no server.
 ## Building from scratch
 
 [BUILD_DASHBOARD.md](BUILD_DASHBOARD.md) is the prompt I gave Claude to generate `index.html` — paste it into Claude if you want to rebuild that page yourself.
+
+## Steps from the iPhone Health app
+
+The Fitness page has a Steps card. A website cannot read Apple Health, so an
+iPhone Shortcut sends each day's step count to the Supabase `app_state` table
+as a row keyed `steps:YYYY-MM-DD` with data `{"steps": 8421}`. Running it
+again on the same day overwrites that day's number.
+
+Build the shortcut in the Shortcuts app with these actions, in order:
+
+1. **Find Health Samples** — Type is *Steps*, Start Date is *today*.
+2. **Calculate Statistics** — *Sum* of *Health Samples*.
+3. **Round Number** — round the result to *Ones Place*.
+4. **Format Date** — *Current Date*, Custom format `yyyy-MM-dd`.
+5. **Format Date** — *Current Date*, format *ISO 8601*, include time.
+6. **Text** — type this, inserting the variables from steps 4, 3 and 5:
+   `{"key":"steps:[Formatted Date]","data":{"steps":[Rounded Number]},"updated_at":"[ISO Date]"}`
+7. **Get Contents of URL**
+   - URL: `https://YOUR-PROJECT.supabase.co/rest/v1/app_state?on_conflict=key`
+   - Method: POST
+   - Headers: `apikey` = your publishable key, `Authorization` = `Bearer ` + the
+     same key, `Content-Type` = `application/json`,
+     `Prefer` = `resolution=merge-duplicates`
+   - Request Body: *File*, set to the Text from step 6
+
+Then in Shortcuts > Automation, add a *Time of Day* automation that runs it
+daily (set it to run immediately). Health data is locked while the phone is
+locked, so pick a time the phone is normally in use.

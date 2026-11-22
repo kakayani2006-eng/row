@@ -898,6 +898,22 @@ img, video, canvas, svg { max-width: 100%; }
   margin-bottom: 14px;
   display: inline-flex; align-items: center; gap: 6px;
 }
+.st-empty { text-align: center; padding: 18px 12px; color: var(--text-3); font-size: 13px; }
+.st-meta {
+  font-family: var(--font-mono); font-size: 12px; color: var(--text-2);
+  margin-bottom: 16px; font-variant-numeric: tabular-nums;
+}
+.st-bars { display: flex; align-items: flex-end; gap: 4px; height: 90px; }
+.st-bar {
+  flex: 1; min-width: 0; border-radius: 4px 4px 0 0;
+  background: rgba(110,231,183,0.35); min-height: 2px;
+}
+.st-bar.is-latest { background: var(--good); }
+.st-bar.is-missing { background: rgba(255,255,255,0.06); }
+.st-axis {
+  display: flex; justify-content: space-between; margin-top: 6px;
+  font-family: var(--font-mono); font-size: 10px; color: var(--text-3);
+}
 .wt-empty {
   text-align: center; padding: 28px 16px;
   color: var(--text-3); font-size: 13px;
@@ -1427,6 +1443,23 @@ img, video, canvas, svg { max-width: 100%; }
       </div>
     </div>
 
+  </div>
+
+  <!-- STEPS — sent from the iPhone Health app by a Shortcut (see README) -->
+  <div class="wt-section">
+    <div class="wt-divider"><span>STEPS</span></div>
+    <div class="wt-card">
+      <div class="st-empty" id="stEmpty">No steps yet. Run the iPhone shortcut to send today's count.</div>
+      <div id="stBody" style="display:none">
+        <div class="wt-row">
+          <span class="wt-num" id="stNum">0</span>
+          <span class="wt-unit" id="stWhen">today</span>
+        </div>
+        <div class="st-meta" id="stMeta"></div>
+        <div class="st-bars" id="stBars" role="img" aria-label="Steps per day, last 14 days"></div>
+        <div class="st-axis"><span id="stAxisFrom"></span><span id="stAxisTo"></span></div>
+      </div>
+    </div>
   </div>
 
   <div class="po-header">
@@ -3609,6 +3642,98 @@ img, video, canvas, svg { max-width: 100%; }
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) pcFlushPushOnUnload();
   });
+})();
+</script>
+
+<script>
+// ============================================================
+// STEPS — one row per day in the same Supabase app_state table,
+// keyed "steps:YYYY-MM-DD" with data {"steps": N}. An iPhone
+// Shortcut reads the count from Apple Health and upserts the row
+// (setup in README.md). This page only reads them.
+// ============================================================
+(function () {
+  'use strict';
+  const URL_BASE = 'https://vxsvtljeznhlyatlvaxr.supabase.co';
+  const KEY = 'sb_publishable_sUxKP6xaip8OzY1Il64xqg_BNXaV24r';
+  const CACHE_KEY = 'steps_cache_v1';
+  const DAYS = 14;
+  const el = (id) => document.getElementById(id);
+  const pad = (n) => String(n).padStart(2, '0');
+  const dayKey = (d) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  function daysAgo(n) { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - n); return d; }
+  function label(k) {
+    const p = k.split('-').map(Number);
+    const d = new Date(p[0], p[1] - 1, p[2]);
+    return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()] + ' ' + d.getDate();
+  }
+
+  // byDay: { 'YYYY-MM-DD': steps }
+  function render(byDay) {
+    const keys = Object.keys(byDay).sort();
+    if (!keys.length) { el('stEmpty').style.display = ''; el('stBody').style.display = 'none'; return; }
+    el('stEmpty').style.display = 'none'; el('stBody').style.display = '';
+    const today = dayKey(new Date());
+    const latest = keys[keys.length - 1];
+    el('stNum').textContent = Math.round(byDay[latest]).toLocaleString();
+    el('stWhen').textContent = latest === today ? 'today' : label(latest);
+
+    const window14 = [];
+    for (let i = DAYS - 1; i >= 0; i--) window14.push(dayKey(daysAgo(i)));
+    const last7 = window14.slice(-7).map(k => byDay[k]).filter(v => v != null);
+    const avg = last7.length ? Math.round(last7.reduce((a, b) => a + b, 0) / last7.length) : null;
+    const inWin = window14.filter(k => byDay[k] != null);
+    const bestKey = inWin.slice().sort((a, b) => byDay[b] - byDay[a])[0];
+    const parts = [];
+    if (avg != null) parts.push('7-day avg ' + avg.toLocaleString());
+    if (bestKey) parts.push('best ' + Math.round(byDay[bestKey]).toLocaleString() + ' on ' + label(bestKey));
+    el('stMeta').textContent = parts.join(' · ');
+
+    const max = Math.max.apply(null, inWin.map(k => byDay[k]).concat([1]));
+    el('stBars').innerHTML = window14.map(k => {
+      const v = byDay[k];
+      if (v == null) return '<div class="st-bar is-missing" title="' + label(k) + ': no data"></div>';
+      const h = Math.max(2, Math.round((v / max) * 100));
+      return '<div class="st-bar' + (k === latest ? ' is-latest' : '') + '" style="height:' + h + '%" title="' +
+        label(k) + ': ' + Math.round(v).toLocaleString() + '"></div>';
+    }).join('');
+    el('stAxisFrom').textContent = label(window14[0]);
+    el('stAxisTo').textContent = label(window14[window14.length - 1]);
+  }
+
+  function readCache() { try { return JSON.parse(localStorage.getItem(CACHE_KEY)) || {}; } catch (e) { return {}; } }
+
+  async function refresh() {
+    if (window.DASH_SANDBOX) return;
+    try {
+      const res = await fetch(URL_BASE + '/rest/v1/app_state?select=key,data&key=like.steps:*&order=key.desc&limit=90', {
+        headers: { apikey: KEY, Authorization: 'Bearer ' + KEY }
+      });
+      if (!res.ok) return;
+      const rows = await res.json();
+      const byDay = {};
+      rows.forEach(r => {
+        const k = String(r.key || '').slice(6);
+        const v = r.data && Number(r.data.steps);
+        if (/^\d{4}-\d{2}-\d{2}$/.test(k) && isFinite(v)) byDay[k] = v;
+      });
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify(byDay)); } catch (e) {}
+      render(byDay);
+    } catch (e) {}
+  }
+
+  if (window.DASH_SANDBOX) {
+    // Made-up numbers for the sandbox.
+    const sample = {};
+    [8420, 10110, 6730, 12050, 9340, 7810, 11260, 5980, 9720, 10480, 8890, 13140, 7450, 9060]
+      .forEach((v, i) => { sample[dayKey(daysAgo(13 - i))] = v; });
+    render(sample);
+    return;
+  }
+  render(readCache());
+  refresh();
+  window.addEventListener('focus', refresh);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
 })();
 </script>
 
