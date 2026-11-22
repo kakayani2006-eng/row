@@ -19,6 +19,7 @@ Open any `.html` file directly in your browser — no build step, no install.
 | [finance.html](finance.html) | Finances |
 | [gym.html](gym.html) | Progressive overload gym tracker |
 | [topbar.js](topbar.js) | Shared top bar — auto-injected into pages that `<script src="topbar.js">` |
+| [sandbox.js](sandbox.js) | Sandbox mode — add `?sandbox` to any page URL for a copy with sample data and cloud sync off |
 
 Each app stores its own state in browser `localStorage`. No accounts, no server.
 
