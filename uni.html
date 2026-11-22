@@ -193,7 +193,7 @@ main {
     <div class="prog" id="prog"></div>
     <div id="weeks"></div>
     <div class="add-row" style="grid-template-columns: 1fr 80px">
-      <input id="topicName" class="input" type="text" placeholder="Add a topic to this module" autocomplete="off" />
+      <input id="topicName" class="input" type="text" placeholder="Add a topic to this tab" autocomplete="off" />
       <button id="topicAdd" class="btn" type="button">+ Add</button>
     </div>
   </div>
@@ -206,8 +206,10 @@ main {
   // ============================================================
   // MODULES — edit this list to add the next module. Each week has
   // a start date (the Monday), its lectures, and any other sessions.
-  // A lecture is [code, title]. Codes starting "CPP" are Clinical
-  // and Professional Practice lectures.
+  // A lecture is [code, title]. The code "CPP" marks a Clinical and
+  // Professional Practice lecture; those show under their own CPP tab.
+  // Add new lectures at the END of a week's list so saved ticks stay
+  // attached to the right lecture.
   // ============================================================
   const MODULES = [
     {
@@ -394,9 +396,10 @@ main {
     $('wkEyebrow').textContent = cur.mod.name;
     $('wkTitle').textContent = (!cur.live ? 'Last taught: ' : isWeekend() ? 'Coming up: ' : '') + 'Week ' + (cur.index + 1) + ' · ' + short(s) + ' to ' + short(e);
     const prog = get('uni:progress', {});
-    const n = cur.week.lectures.length;
+    const n = cur.week.lectures.filter(l => !isCpp(l)).length;
+    const nCpp = cur.week.lectures.length - n;
     const done = cur.week.lectures.filter((l, li) => (prog[lecId(cur.mod, cur.index, li)] || {}).n).length;
-    $('wkSub').textContent = n + ' lectures · notes done for ' + done;
+    $('wkSub').textContent = n + ' lectures' + (nCpp ? ' + ' + nCpp + ' CPP' : '') + ' · notes done for ' + done;
     const sessions = cur.week.sessions || [];
     $('wkList').innerHTML = sessions.map(x => '<li>' + esc(x) + '</li>').join('');
     $('wkNote').textContent = sessions.length
@@ -455,12 +458,36 @@ main {
   let activeMod = (currentWeek() || { mod: MODULES[0] }).mod.id;
   const openWeeks = {};
   function customTopics(modId) { return get('uni:custom', []).filter(c => c.mod === modId); }
-  function rowsFor(mod) {
-    // [{ id, code, title, group }]
-    const rows = [];
-    mod.weeks.forEach((w, wi) => w.lectures.forEach((l, li) => rows.push({ id: lecId(mod, wi, li), code: l[0], title: l[1], group: wi })));
-    customTopics(mod.id).forEach(c => rows.push({ id: c.id, code: '', title: c.title, group: 'extra', custom: true }));
-    return rows;
+  const isCpp = (l) => l[0] === 'CPP';
+  const TABS = MODULES.map(m => ({ id: m.id, short: m.short })).concat([{ id: 'cpp', short: 'CPP' }]);
+  // Groups of rows for a tab. Module tabs hold that module's own lectures,
+  // week by week. The CPP tab gathers the CPP lectures from every module.
+  // Row ids come from the lecture's position in MODULES, so they stay the
+  // same whichever tab shows them.
+  function groupsFor(tabId) {
+    const cur = currentWeek();
+    const groups = [];
+    MODULES.forEach(m => {
+      if (tabId !== 'cpp' && m.id !== tabId) return;
+      m.weeks.forEach((w, wi) => {
+        const rows = [];
+        w.lectures.forEach((l, li) => {
+          if (isCpp(l) !== (tabId === 'cpp')) return;
+          rows.push({ id: lecId(m, wi, li), code: tabId === 'cpp' ? '' : l[0], title: l[1] });
+        });
+        if (!rows.length) return;
+        groups.push({
+          key: tabId + ':' + m.id + ':' + wi,
+          name: (tabId === 'cpp' ? m.short + ' · ' : '') + 'Week ' + (wi + 1),
+          start: w.start,
+          isCur: !!(cur && cur.live && cur.mod.id === m.id && cur.index === wi),
+          rows
+        });
+      });
+    });
+    const extra = customTopics(tabId).map(c => ({ id: c.id, code: '', title: c.title, custom: true }));
+    if (extra.length) groups.push({ key: tabId + ':extra', name: 'Extra topics', rows: extra, fixed: true });
+    return groups;
   }
   function lecHtml(r, prog) {
     const p = prog[r.id] || {};
@@ -473,10 +500,10 @@ main {
       + '</div></div>';
   }
   function renderTracker() {
-    const mod = MODULES.find(m => m.id === activeMod) || MODULES[0];
     const prog = get('uni:progress', {});
-    const rows = rowsFor(mod);
-    $('modSeg').innerHTML = MODULES.map(m => '<button data-mod="' + m.id + '" class="' + (m.id === mod.id ? 'active' : '') + '">' + esc(m.short) + '</button>').join('');
+    const groups = groupsFor(activeMod);
+    const rows = groups.reduce((all, g) => all.concat(g.rows), []);
+    $('modSeg').innerHTML = TABS.map(t => '<button data-mod="' + t.id + '" class="' + (t.id === activeMod ? 'active' : '') + '">' + esc(t.short) + '</button>').join('');
     $('prog').innerHTML = STEPS.map(s => {
       const n = rows.filter(r => (prog[r.id] || {})[s[0]]).length;
       const pct = rows.length ? (n / rows.length) * 100 : 0;
@@ -484,25 +511,21 @@ main {
         + '<div class="prog-val">' + n + '<span> / ' + rows.length + '</span></div>'
         + '<div class="prog-track"><div class="prog-fill" style="width:' + pct + '%"></div></div></div>';
     }).join('');
-    const cur = currentWeek();
-    let html = mod.weeks.map((w, wi) => {
-      const wr = rows.filter(r => r.group === wi);
-      const done = wr.filter(r => STEPS.every(s => (prog[r.id] || {})[s[0]])).length;
-      const isCur = cur && cur.live && cur.mod.id === mod.id && cur.index === wi;
-      const key = mod.id + ':' + wi;
-      if (openWeeks[key] == null) openWeeks[key] = !!isCur || (!cur || !cur.live || cur.mod.id !== mod.id) && wi === mod.weeks.length - 1;
-      return '<div class="week' + (openWeeks[key] ? '' : ' closed') + '">'
-        + '<button class="week-head" data-week="' + key + '">'
-        + '<span class="week-name">Week ' + (wi + 1) + '<small>w/c ' + short(parse(w.start)) + '</small>' + (isCur ? '<span class="week-tag">' + (isWeekend() ? 'next week' : 'this week') + '</span>' : '') + '</span>'
-        + '<span class="week-count">' + done + ' / ' + wr.length + ' complete</span></button>'
-        + '<div class="week-body">' + wr.map(r => lecHtml(r, prog)).join('') + '</div></div>';
-    }).join('');
-    const extra = rows.filter(r => r.group === 'extra');
-    if (extra.length) {
-      html += '<div class="week"><div class="week-head" style="cursor:default"><span class="week-name">Extra topics</span></div>'
-        + '<div class="week-body">' + extra.map(r => lecHtml(r, prog)).join('') + '</div></div>';
-    }
-    $('weeks').innerHTML = html;
+    // Open the current week by default, or the latest one if none is current.
+    const weekGroups = groups.filter(g => !g.fixed);
+    const anyCur = weekGroups.some(g => g.isCur);
+    $('weeks').innerHTML = groups.length ? groups.map(g => {
+      const done = g.rows.filter(r => STEPS.every(s => (prog[r.id] || {})[s[0]])).length;
+      if (g.fixed) openWeeks[g.key] = true;
+      else if (openWeeks[g.key] == null) openWeeks[g.key] = g.isCur || (!anyCur && g === weekGroups[weekGroups.length - 1]);
+      return '<div class="week' + (openWeeks[g.key] ? '' : ' closed') + '">'
+        + '<button class="week-head"' + (g.fixed ? ' style="cursor:default"' : ' data-week="' + g.key + '"') + '>'
+        + '<span class="week-name">' + esc(g.name)
+        + (g.start ? '<small>w/c ' + short(parse(g.start)) + '</small>' : '')
+        + (g.isCur ? '<span class="week-tag">' + (isWeekend() ? 'next week' : 'this week') + '</span>' : '') + '</span>'
+        + '<span class="week-count">' + done + ' / ' + g.rows.length + ' complete</span></button>'
+        + '<div class="week-body">' + g.rows.map(r => lecHtml(r, prog)).join('') + '</div></div>';
+    }).join('') : '<div class="empty">Nothing here yet.</div>';
   }
   $('modSeg').addEventListener('click', (e) => {
     const b = e.target.closest('[data-mod]'); if (!b) return;
