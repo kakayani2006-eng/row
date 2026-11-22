@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#050506">
+<meta name="color-scheme" content="dark">
+<title>Uni</title>
+<script src="sandbox.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="sync.js" defer></script>
+<script src="topbar.js" defer></script>
+<style>
+:root {
+  --bg: #050506;
+  --bg-card: rgba(255, 255, 255, 0.04);
+  --bg-secondary: rgba(255, 255, 255, 0.035);
+  --bg-input: rgba(0, 0, 0, 0.28);
+  --border-soft: rgba(255, 255, 255, 0.04);
+  --border-strong: rgba(255, 255, 255, 0.12);
+  --text-primary: #FAFAFA;
+  --text-secondary: #B8B6B0;
+  --text-tertiary: #76746E;
+  --text-quaternary: #4D4B47;
+  --accent: #1D9E75;
+  --warning: #FF8A4D;
+  --font: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0;
+  background: var(--bg); color: var(--text-secondary);
+  font-family: var(--font); font-size: 15px; line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+body { min-height: 100vh; overflow-x: hidden; }
+main {
+  max-width: 720px; margin: 0 auto;
+  padding: 40px max(16px, env(safe-area-inset-right)) 80px max(16px, env(safe-area-inset-left));
+}
+.section-title {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--text-tertiary); margin: 0 4px 14px;
+}
+.section-title:not(:first-child) { margin-top: 44px; }
+.card {
+  background: var(--bg-card); border-radius: 16px;
+  padding: 20px 18px 16px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+}
+.eyebrow {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--text-tertiary); margin-bottom: 6px;
+}
+.title { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; color: var(--text-primary); line-height: 1.2; }
+.sub { font-family: var(--font-mono); font-size: 12px; color: var(--text-tertiary); margin-top: 6px; }
+.empty { font-size: 12px; color: var(--text-quaternary); font-style: italic; padding: 8px 4px; }
+
+/* This week */
+.wk-list { list-style: none; margin: 14px 0 0; padding: 0; }
+.wk-list li {
+  padding: 9px 12px; margin-bottom: 6px; border-radius: 10px;
+  background: var(--bg-secondary); font-size: 13px; color: var(--text-primary);
+}
+.wk-note { font-size: 11px; color: var(--text-tertiary); margin-top: 10px; }
+
+/* Deadlines */
+.dl-row {
+  display: grid; grid-template-columns: 28px 1fr auto auto; gap: 10px; align-items: center;
+  padding: 10px 12px; margin-bottom: 6px; border-radius: 10px; background: var(--bg-secondary);
+}
+.dl-row.done .dl-name { text-decoration: line-through; color: var(--text-tertiary); }
+.dl-name { font-size: 14px; font-weight: 600; color: var(--text-primary); min-width: 0; overflow-wrap: anywhere; }
+.dl-date { font-size: 11px; color: var(--text-tertiary); }
+.dl-left {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  padding: 3px 8px; border-radius: 99px; white-space: nowrap;
+  background: rgba(255,255,255,0.06); color: var(--text-secondary);
+}
+.dl-left.soon { background: rgba(255,138,77,0.14); color: var(--warning); }
+.dl-left.over { background: rgba(239,68,68,0.14); color: #FF6B6B; }
+.check {
+  width: 26px; height: 26px; border-radius: 50%; padding: 0;
+  border: 2px solid var(--border-strong); background: transparent;
+  color: transparent; font-size: 13px; cursor: pointer; font-family: inherit;
+  display: flex; align-items: center; justify-content: center;
+}
+.check.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.del {
+  background: transparent; border: 1px solid var(--border-strong); color: var(--text-tertiary);
+  cursor: pointer; font-size: 16px; line-height: 1; border-radius: 6px;
+  min-width: 28px; min-height: 28px; font-family: inherit;
+}
+.del:hover { color: #FF6B6B; border-color: rgba(239,68,68,0.45); }
+.add-row {
+  display: grid; grid-template-columns: 1fr 150px 80px; gap: 6px;
+  margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-soft);
+}
+.add-row > * { min-width: 0; }
+.input {
+  font-size: 13px; padding: 9px 11px; border-radius: 10px;
+  border: 1px solid var(--border-strong); background: var(--bg-input);
+  color: var(--text-primary); font-family: inherit; color-scheme: dark;
+}
+.input::placeholder { color: var(--text-tertiary); }
+.input:focus { outline: none; border-color: rgba(255,255,255,0.4); }
+.btn {
+  font-size: 13px; padding: 9px 11px; border-radius: 10px; cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.85);
+  background: linear-gradient(180deg, #FFFFFF 0%, #E8E5DD 100%);
+  color: #0A0A0B; font-weight: 700; font-family: inherit;
+}
+
+/* Revision tracker */
+.seg { display: flex; gap: 4px; padding: 4px; border-radius: 12px; background: rgba(0,0,0,0.28); margin-bottom: 16px; }
+.seg button {
+  flex: 1; padding: 9px 8px; border: 0; border-radius: 9px; cursor: pointer;
+  background: transparent; color: var(--text-tertiary);
+  font-family: inherit; font-size: 13px; font-weight: 600;
+}
+.seg button.active { background: #FAFAFA; color: #0A0A0B; }
+.prog { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 18px; }
+.prog-box { background: var(--bg-secondary); border-radius: 12px; padding: 10px 12px; }
+.prog-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-tertiary); }
+.prog-val { font-size: 18px; font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.prog-val span { font-size: 12px; font-weight: 500; color: var(--text-tertiary); }
+.prog-track { height: 4px; border-radius: 99px; background: rgba(255,255,255,0.06); overflow: hidden; margin-top: 6px; }
+.prog-fill { height: 100%; width: 0; background: #fff; border-radius: 99px; transition: width 0.4s; }
+.week { margin-bottom: 8px; border-radius: 12px; background: rgba(255,255,255,0.02); }
+.week-head {
+  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 12px 12px; border: 0; background: transparent; cursor: pointer;
+  font-family: inherit; color: var(--text-primary); text-align: left;
+}
+.week-name { font-size: 13px; font-weight: 700; }
+.week-name small { font-weight: 500; color: var(--text-tertiary); margin-left: 6px; }
+.week-tag {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+  padding: 2px 7px; border-radius: 99px; margin-left: 8px;
+  background: rgba(29,158,117,0.15); color: var(--accent);
+}
+.week-count { font-family: var(--font-mono); font-size: 11px; color: var(--text-tertiary); white-space: nowrap; }
+.week-body { padding: 0 8px 8px; }
+.week.closed .week-body { display: none; }
+.lec {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+  padding: 9px 10px; margin-bottom: 5px; border-radius: 10px; background: var(--bg-secondary);
+}
+.lec-name { font-size: 13px; color: var(--text-primary); flex: 1 1 200px; min-width: 0; }
+.lec-code { font-family: var(--font-mono); font-size: 10px; color: var(--text-tertiary); margin-right: 6px; }
+.lec.all .lec-name { color: var(--text-tertiary); }
+.chips { display: flex; gap: 5px; }
+.chip {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 600; letter-spacing: 0.04em;
+  padding: 5px 9px; border-radius: 99px; cursor: pointer;
+  border: 1px solid var(--border-strong); background: transparent; color: var(--text-tertiary);
+}
+.chip.on { background: rgba(29,158,117,0.18); border-color: rgba(29,158,117,0.5); color: #6BE3A4; }
+.chip-del { border-color: transparent; padding: 5px 6px; }
+@media (max-width: 480px) {
+  .add-row { grid-template-columns: 1fr 1fr; }
+  .add-row .input:first-child { grid-column: 1 / -1; }
+}
+</style>
+</head>
+<body>
+<main>
+  <div class="section-title">This week</div>
+  <div class="card">
+    <div class="eyebrow" id="wkEyebrow">—</div>
+    <div class="title" id="wkTitle">—</div>
+    <div class="sub" id="wkSub"></div>
+    <ul class="wk-list" id="wkList"></ul>
+    <div class="wk-note" id="wkNote"></div>
+  </div>
+
+  <div class="section-title">Deadlines</div>
+  <div class="card">
+    <div id="dlList"></div>
+    <div class="add-row">
+      <input id="dlName" class="input" type="text" placeholder="Deadline (e.g. Anatomy quiz)" autocomplete="off" />
+      <input id="dlDate" class="input" type="date" aria-label="Due date" />
+      <button id="dlAdd" class="btn" type="button">+ Add</button>
+    </div>
+  </div>
+
+  <div class="section-title">Revision tracker</div>
+  <div class="card">
+    <div class="seg" id="modSeg"></div>
+    <div class="prog" id="prog"></div>
+    <div id="weeks"></div>
+    <div class="add-row" style="grid-template-columns: 1fr 80px">
+      <input id="topicName" class="input" type="text" placeholder="Add a topic to this module" autocomplete="off" />
+      <button id="topicAdd" class="btn" type="button">+ Add</button>
+    </div>
+  </div>
+</main>
+
+<script>
+(() => {
+  'use strict';
+
+  // ============================================================
+  // MODULES — edit this list to add the next module. Each week has
+  // a start date (the Monday), its lectures, and any other sessions.
+  // A lecture is [code, title]. Codes starting "CPP" are Clinical
+  // and Professional Practice lectures.
+  // ============================================================
+  const MODULES = [
+    {
+      id: 'fhmp', short: 'FHMP', name: 'Foundations of Health and Medical Practice',
+      weeks: [
+        { start: '2026-10-05', lectures: [
+          ['002', 'Amino acids, protein structure & function'],
+          ['003', 'Mitosis, Meiosis, Mendel & Hardy-Weinberg'],
+          ['004', 'DNA structure & replication'],
+          ['005', 'Control of transcription'],
+          ['006', 'Tissues & Organs'],
+          ['007', 'Enzymes & catalysis'],
+          ['008', 'Enzymes in Medicine'],
+          ['009', 'Extra-cellular matrix & connective tissue'],
+          ['010', 'CAL: Enzymes'],
+          ['012', 'CAL: Essential Maths for Medicine'],
+          ['CPP', 'Intro to DDS & Diagnostic Tests'],
+          ['CPP', 'Evidence-based Medicine & Ethics in Medical Research'],
+        ]},
+        { start: '2026-10-12', lectures: [
+          ['013', 'Epithelium & Skin'],
+          ['014', 'Practical: Tissues & Organs'],
+          ['015', 'Practical: Connective tissue histology'],
+          ['016', 'Translation'],
+          ['017', 'Molecular biology & medicine'],
+          ['018', 'Case of the Module'],
+          ['019', 'Blood Transfusion'],
+          ['021', 'Practical: Histology of skin & epithelia'],
+          ['CPP', 'Statistics Pt 1'],
+          ['CPP', 'Statistics Pt 2'],
+          ['CPP', 'Statistics CAL'],
+          ['CPP', 'Ethics & Law in Medicine'],
+          ['CPP', 'Patient-Centred Consultation'],
+          ['CPP', 'Diagnostic Tests (LGW)'],
+          ['CPP', 'Finding the Evidence (LGW)'],
+          ['CPP', 'No Health Without Mental Health'],
+          ['CPP', 'Positive Culture & Patient Safety Through Teamwork'],
+          ['CPP', 'Intro to Patient Pathway in Integrated Community Care'],
+        ]},
+        { start: '2026-10-19', lectures: [
+          ['022', 'Anaemia'],
+          ['023', 'Coagulation'],
+          ['024', 'CAL: Anaemia'],
+          ['025', 'Intro to Anatomy 1'],
+          ['026', 'Homeostasis'],
+          ['027', 'Intro to Anatomy 2'],
+          ['028', 'Intro to medical imaging'],
+          ['029', 'Practical: Permeability of cell membranes'],
+          ['031', 'Blood Tutorials'],
+          ['032', 'Chromosomes, genes & cell cycle'],
+          ['033', 'Anatomy of Lymphatic System'],
+          ['035', 'Anat Lab intro (terminology, MSK & PNS)'],
+          ['036', 'CAL: Homeostasis'],
+          ['CPP', 'Confidentiality'],
+          ['CPP', 'Social Determinants of Health'],
+          ['CPP', 'Stress Management Across the Mental Health Continuum'],
+        ]},
+        { start: '2026-10-26', lectures: [
+          ['UMP1001', 'Intro to Pharmacology'],
+          ['UMP1002', 'Drug receptors 1'],
+          ['UMP1003', 'Drug receptors 2'],
+          ['UMP1004', 'Pharmacology of parasympathetic NS'],
+          ['038', 'Intro to Developmental Biology'],
+          ['039', 'Intro to Pathological Sciences'],
+          ['040', 'Anatomy review'],
+          ['041', 'Embryology'],
+          ['042', 'TBL: Practical Examples'],
+          ['CPP', 'Study Designs'],
+          ['CPP', 'Managing Long-Term Conditions in the Community'],
+          ['CPP', 'Measures of Disease'],
+        ]},
+      ]
+    },
+    {
+      id: 'iad', short: 'I&D', name: 'Infection and Defence',
+      weeks: [
+        { start: '2026-11-02', lectures: [
+          ['001', 'Intro to I&D & case studies'],
+          ['002', 'Intro to infectious agents & immune system'],
+          ['003', 'Cells & tissues of immune system'],
+          ['004', 'Bacteria structure'],
+          ['005', 'Bacteria ecology & transmission'],
+          ['006', 'Viruses structure'],
+          ['007', 'Viral disease & transmission'],
+          ['008', 'Innate immunity'],
+          ['009', 'Antigen recognition: B cells'],
+          ['010', 'Antigen recognition: T cells & MHC'],
+          ['011', 'Humoral immunity'],
+          ['013', 'Case Study 1: Sore throat'],
+          ['UMP1005', 'Drug Action tutorials'],
+          ['CPP', 'History of Epidemiology'],
+          ['CPP', 'Intro to Psychiatry'],
+          ['CPP', 'CAL: Study Designs'],
+        ]},
+        { start: '2026-11-09', lectures: [
+          ['014', 'How bacteria cause disease'],
+          ['015', 'Antibiotics'],
+          ['016', 'Healing & Repair'],
+          ['017', 'Fungal infection'],
+          ['018', 'Paediatric infection'],
+          ['019', 'Inflammation'],
+          ['020', 'Case study: Malaria'],
+          ['021', 'Sepsis'],
+          ['022', 'Cellular immunity'],
+          ['023', 'Tissue immune responses'],
+          ['024', 'Case Study 2: TB'],
+          ['026', 'Parasitic infections'],
+          ['CPP', 'Thinking Globally'],
+        ]},
+        { start: '2026-11-16', lectures: [
+          ['027/028', 'Diagnosis of infection'],
+          ['029', 'Immunodeficiency'],
+          ['030', 'Case Study 3: HIV'],
+          ['031', 'Case study: Virology diagnosis'],
+          ['032', 'Bacteriology Tutorial'],
+          ['033', 'Allergy & Hypersensitivity'],
+          ['034', 'Immunological Tolerance'],
+          ['035', 'Autoimmunity'],
+        ]},
+        { start: '2026-11-23', lectures: [
+          ['037', 'Transplantation'],
+          ['038', 'Anti-microbial resistance'],
+          ['039', 'Prevention & treatment of viral infections'],
+          ['040', 'Immunology of cancer'],
+          ['041', 'Emerging infectious diseases'],
+          ['042', 'Case study: Autoimmunity diagnosis & management'],
+          ['043', 'Immunology Tutorial'],
+          ['044', 'Vaccination'],
+          ['045', 'I&D Revision lecture'],
+          ['046', 'Case Study 4: Immunotherapy'],
+          ['CPP', 'Statistical Tests'],
+          ['CPP', 'Impact of Family, Culture, Spirituality & Society on Mental Health'],
+        ], sessions: [
+          'Immunology Tutorial — B groups 12:00, seminar rooms',
+          'Dry Lab — groups 5-6, DL3, 14:00-15:30',
+          'First Patient Experience — CPP B5-B8, Anatomy Lab',
+          'UCLMS Toolkit Session 3',
+          'Quiz of the Week — Friday',
+          'End of Module Quiz — Fri 27 Nov (async)',
+        ]},
+      ]
+    }
+  ];
+  const STEPS = [['n', 'Notes'], ['a', 'Anki'], ['r', 'Reviewed']];
+  const SEED = 'uni-2026-11-22';
+  const SEED_DEADLINES = [{ id: 'dl_iad_eomq', name: 'I&D End of Module Quiz', date: '2026-11-27', done: false }];
+
+  // ---------- storage ----------
+  const get = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } };
+  const set = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+  const esc = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const $ = (id) => document.getElementById(id);
+
+  // ---------- dates ----------
+  const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  function parse(k) { const p = k.split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]); }
+  function today() { const d = new Date(); d.setHours(0, 0, 0, 0); return d; }
+  function daysBetween(a, b) { return Math.round((b - a) / 86400000); }
+  function short(d) { return d.getDate() + ' ' + MON[d.getMonth()]; }
+  // The week that contains today, or the most recent one if between modules.
+  // At the weekend it looks ahead to the week starting Monday.
+  function isWeekend() { const d = today().getDay(); return d === 0 || d === 6; }
+  function currentWeek() {
+    const t = today();
+    if (t.getDay() === 6) t.setDate(t.getDate() + 2);
+    if (t.getDay() === 0) t.setDate(t.getDate() + 1);
+    let best = null;
+    MODULES.forEach(m => m.weeks.forEach((w, i) => {
+      const s = parse(w.start);
+      if (s <= t && (!best || s > parse(best.week.start))) best = { mod: m, week: w, index: i };
+    }));
+    if (!best) return null;
+    best.live = daysBetween(parse(best.week.start), t) < 7;
+    return best;
+  }
+  const lecId = (m, wi, li) => m.id + ':' + wi + ':' + li;
+
+  // ---------- this week ----------
+  function renderWeek() {
+    const cur = currentWeek();
+    if (!cur) { $('wkEyebrow').textContent = 'No module yet'; $('wkTitle').textContent = 'Nothing scheduled'; return; }
+    const s = parse(cur.week.start), e = new Date(s); e.setDate(e.getDate() + 4);
+    $('wkEyebrow').textContent = cur.mod.name;
+    $('wkTitle').textContent = (!cur.live ? 'Last taught: ' : isWeekend() ? 'Coming up: ' : '') + 'Week ' + (cur.index + 1) + ' · ' + short(s) + ' to ' + short(e);
+    const prog = get('uni:progress', {});
+    const n = cur.week.lectures.length;
+    const done = cur.week.lectures.filter((l, li) => (prog[lecId(cur.mod, cur.index, li)] || {}).n).length;
+    $('wkSub').textContent = n + ' lectures · notes done for ' + done;
+    const sessions = cur.week.sessions || [];
+    $('wkList').innerHTML = sessions.map(x => '<li>' + esc(x) + '</li>').join('');
+    $('wkNote').textContent = sessions.length
+      ? 'Days and rooms for group sessions are on the UCL Online Timetable.'
+      : 'Lectures for this week are in the tracker below.';
+  }
+
+  // ---------- deadlines ----------
+  function getDeadlines() {
+    let list = get('uni:deadlines', []);
+    if (!Array.isArray(list)) list = [];
+    if (get('uni:seed', null) !== SEED) {
+      SEED_DEADLINES.forEach(d => { if (!list.some(x => x.id === d.id)) list.push(Object.assign({}, d)); });
+      set('uni:deadlines', list);
+      set('uni:seed', SEED);
+    }
+    return list;
+  }
+  function renderDeadlines() {
+    const list = getDeadlines().slice().sort((a, b) => (a.done - b.done) || a.date.localeCompare(b.date));
+    const t = today();
+    $('dlList').innerHTML = list.length ? list.map(d => {
+      const due = parse(d.date), left = daysBetween(t, due);
+      let label = left === 0 ? 'today' : left === 1 ? 'tomorrow' : left > 1 ? left + ' days' : Math.abs(left) + 'd overdue';
+      let cls = left < 0 ? 'over' : left <= 3 ? 'soon' : '';
+      if (d.done) { label = 'done'; cls = ''; }
+      return '<div class="dl-row' + (d.done ? ' done' : '') + '">'
+        + '<button class="check' + (d.done ? ' on' : '') + '" data-act="toggle" data-id="' + esc(d.id) + '" aria-label="Mark done">' + (d.done ? '✓' : '') + '</button>'
+        + '<div><div class="dl-name">' + esc(d.name) + '</div><div class="dl-date">' + DOW[due.getDay()] + ' ' + short(due) + '</div></div>'
+        + '<span class="dl-left ' + cls + '">' + label + '</span>'
+        + '<button class="del" data-act="del" data-id="' + esc(d.id) + '" aria-label="Delete">×</button>'
+        + '</div>';
+    }).join('') : '<div class="empty">No deadlines. Add one below.</div>';
+  }
+  $('dlList').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    let list = getDeadlines();
+    if (b.dataset.act === 'toggle') list.forEach(d => { if (d.id === b.dataset.id) d.done = !d.done; });
+    else list = list.filter(d => d.id !== b.dataset.id);
+    set('uni:deadlines', list); renderDeadlines();
+  });
+  function addDeadline() {
+    const name = $('dlName').value.trim(), date = $('dlDate').value;
+    if (!name) { $('dlName').focus(); return; }
+    if (!date) { $('dlDate').focus(); return; }
+    const list = getDeadlines();
+    list.push({ id: 'dl_' + Date.now(), name, date, done: false });
+    set('uni:deadlines', list);
+    $('dlName').value = ''; $('dlDate').value = '';
+    renderDeadlines();
+  }
+  $('dlAdd').addEventListener('click', addDeadline);
+  $('dlName').addEventListener('keydown', (e) => { if (e.key === 'Enter') addDeadline(); });
+
+  // ---------- revision tracker ----------
+  let activeMod = (currentWeek() || { mod: MODULES[0] }).mod.id;
+  const openWeeks = {};
+  function customTopics(modId) { return get('uni:custom', []).filter(c => c.mod === modId); }
+  function rowsFor(mod) {
+    // [{ id, code, title, group }]
+    const rows = [];
+    mod.weeks.forEach((w, wi) => w.lectures.forEach((l, li) => rows.push({ id: lecId(mod, wi, li), code: l[0], title: l[1], group: wi })));
+    customTopics(mod.id).forEach(c => rows.push({ id: c.id, code: '', title: c.title, group: 'extra', custom: true }));
+    return rows;
+  }
+  function lecHtml(r, prog) {
+    const p = prog[r.id] || {};
+    const all = STEPS.every(s => p[s[0]]);
+    return '<div class="lec' + (all ? ' all' : '') + '">'
+      + '<div class="lec-name">' + (r.code ? '<span class="lec-code">' + esc(r.code) + '</span>' : '') + esc(r.title) + '</div>'
+      + '<div class="chips">'
+      + STEPS.map(s => '<button class="chip' + (p[s[0]] ? ' on' : '') + '" data-lec="' + esc(r.id) + '" data-step="' + s[0] + '">' + s[1] + '</button>').join('')
+      + (r.custom ? '<button class="chip chip-del" data-rm="' + esc(r.id) + '" aria-label="Remove topic">×</button>' : '')
+      + '</div></div>';
+  }
+  function renderTracker() {
+    const mod = MODULES.find(m => m.id === activeMod) || MODULES[0];
+    const prog = get('uni:progress', {});
+    const rows = rowsFor(mod);
+    $('modSeg').innerHTML = MODULES.map(m => '<button data-mod="' + m.id + '" class="' + (m.id === mod.id ? 'active' : '') + '">' + esc(m.short) + '</button>').join('');
+    $('prog').innerHTML = STEPS.map(s => {
+      const n = rows.filter(r => (prog[r.id] || {})[s[0]]).length;
+      const pct = rows.length ? (n / rows.length) * 100 : 0;
+      return '<div class="prog-box"><div class="prog-label">' + s[1] + '</div>'
+        + '<div class="prog-val">' + n + '<span> / ' + rows.length + '</span></div>'
+        + '<div class="prog-track"><div class="prog-fill" style="width:' + pct + '%"></div></div></div>';
+    }).join('');
+    const cur = currentWeek();
+    let html = mod.weeks.map((w, wi) => {
+      const wr = rows.filter(r => r.group === wi);
+      const done = wr.filter(r => STEPS.every(s => (prog[r.id] || {})[s[0]])).length;
+      const isCur = cur && cur.live && cur.mod.id === mod.id && cur.index === wi;
+      const key = mod.id + ':' + wi;
+      if (openWeeks[key] == null) openWeeks[key] = !!isCur || (!cur || !cur.live || cur.mod.id !== mod.id) && wi === mod.weeks.length - 1;
+      return '<div class="week' + (openWeeks[key] ? '' : ' closed') + '">'
+        + '<button class="week-head" data-week="' + key + '">'
+        + '<span class="week-name">Week ' + (wi + 1) + '<small>w/c ' + short(parse(w.start)) + '</small>' + (isCur ? '<span class="week-tag">' + (isWeekend() ? 'next week' : 'this week') + '</span>' : '') + '</span>'
+        + '<span class="week-count">' + done + ' / ' + wr.length + ' complete</span></button>'
+        + '<div class="week-body">' + wr.map(r => lecHtml(r, prog)).join('') + '</div></div>';
+    }).join('');
+    const extra = rows.filter(r => r.group === 'extra');
+    if (extra.length) {
+      html += '<div class="week"><div class="week-head" style="cursor:default"><span class="week-name">Extra topics</span></div>'
+        + '<div class="week-body">' + extra.map(r => lecHtml(r, prog)).join('') + '</div></div>';
+    }
+    $('weeks').innerHTML = html;
+  }
+  $('modSeg').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-mod]'); if (!b) return;
+    activeMod = b.dataset.mod; renderTracker();
+  });
+  $('weeks').addEventListener('click', (e) => {
+    const head = e.target.closest('[data-week]');
+    if (head) { openWeeks[head.dataset.week] = !openWeeks[head.dataset.week]; renderTracker(); return; }
+    const rm = e.target.closest('[data-rm]');
+    if (rm) {
+      set('uni:custom', get('uni:custom', []).filter(c => c.id !== rm.dataset.rm));
+      const prog = get('uni:progress', {}); delete prog[rm.dataset.rm]; set('uni:progress', prog);
+      renderAll(); return;
+    }
+    const chip = e.target.closest('[data-lec]'); if (!chip) return;
+    const prog = get('uni:progress', {});
+    const p = prog[chip.dataset.lec] || {};
+    if (p[chip.dataset.step]) delete p[chip.dataset.step]; else p[chip.dataset.step] = 1;
+    if (Object.keys(p).length) prog[chip.dataset.lec] = p; else delete prog[chip.dataset.lec];
+    set('uni:progress', prog);
+    renderAll();
+  });
+  function addTopic() {
+    const title = $('topicName').value.trim();
+    if (!title) { $('topicName').focus(); return; }
+    const list = get('uni:custom', []);
+    list.push({ id: 'c_' + Date.now(), mod: activeMod, title });
+    set('uni:custom', list);
+    $('topicName').value = '';
+    renderTracker();
+  }
+  $('topicAdd').addEventListener('click', addTopic);
+  $('topicName').addEventListener('keydown', (e) => { if (e.key === 'Enter') addTopic(); });
+
+  function renderAll() { renderWeek(); renderDeadlines(); renderTracker(); }
+  window.addEventListener('storage', renderAll);
+  renderAll();
+})();
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  if (typeof initCloudSync !== 'function') return;
+  initCloudSync({
+    appKey: 'uni',
+    syncedKeys: ['uni:deadlines', 'uni:progress', 'uni:custom', 'uni:seed'],
+    onApplied: function () { window.dispatchEvent(new Event('storage')); }
+  });
+});
+</script>
+</body>
+</html>

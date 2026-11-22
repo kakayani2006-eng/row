@@ -18,6 +18,7 @@ Open any `.html` file directly in your browser — no build step, no install.
 | [health.html](health.html) | Supplement / daily stack tracker |
 | [finance.html](finance.html) | Finances |
 | [gym.html](gym.html) | Progressive overload gym tracker |
+| [uni.html](uni.html) | Uni — this week, deadlines, and a revision tracker by module and lecture |
 | [topbar.js](topbar.js) | Shared top bar — auto-injected into pages that `<script src="topbar.js">` |
 | [sandbox.js](sandbox.js) | Sandbox mode — add `?sandbox` to any page URL for a copy with sample data and cloud sync off |
 

@@ -3,7 +3,7 @@
 // Drop this on any page with:
 //     <script src="topbar.js" defer></script>
 // It self-injects HTML + CSS and renders the finance button in
-// the top bar plus the Main/Health/Fitness bottom tabs. Skips
+// the top bar plus the Main/Health/Fitness/Uni bottom tabs. Skips
 // chrome on finance.html and inside iframes.
 // =============================================================
 (function () {
@@ -115,6 +115,9 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
   <a href="gym.html" class="bottombar-tab" data-page="fitness">
     <span class="bottombar-tab-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 7v10M3 9v6M18 7v10M21 9v6M6 12h12"/></svg></span><span>Fitness</span>
   </a>
+  <a href="uni.html" class="bottombar-tab" data-page="uni">
+    <span class="bottombar-tab-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13v15H6a2 2 0 0 0-2 2z"/><path d="M4 20a2 2 0 0 0 2 2h13v-4"/></svg></span><span>Uni</span>
+  </a>
 </nav>`;
 
   function isFinancePage() {
@@ -129,6 +132,7 @@ body.topbar-modal-open { overflow: hidden; touch-action: none; }
     const p = (window.location.pathname || '').toLowerCase();
     if (p.endsWith('health.html')) return 'health';
     if (p.endsWith('gym.html')) return 'fitness';
+    if (p.endsWith('uni.html')) return 'uni';
     return 'main';
   }
 
